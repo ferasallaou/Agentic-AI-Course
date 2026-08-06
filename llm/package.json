@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@alzulejos/laranja-decorators": "^0.6.1",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "openai": "^7.4.0"
   }
 }

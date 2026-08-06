@@ -1,29 +1,41 @@
 import { env } from "@alzulejos/laranja-decorators";
+import {
+  ChatCompletion,
+  ChatCompletionCreateParams,
+  ChatCompletionMessageParam,
+  ChatCompletionTool,
+} from "openai/resources.js";
 
-export async function llmCall(messages: Record<string, string>[]) {
+export async function llmCall(messages: ChatCompletionMessageParam[]) {
+  console.log(`Calling LLM with ${messages.length} messages`);
   const AI_MODEL = env("AI_MODEL");
   const AI_API_URL = env("AI_API_URL") ?? "";
   const AI_API_KEY = env("AI_API_KEY");
+
+  const payload: ChatCompletionCreateParams = {
+    model: AI_MODEL ?? "",
+    messages,
+    tools: LLM_TOOLS,
+    temperature: 0.2,
+  };
 
   const request = await fetch(AI_API_URL, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${AI_API_KEY}`,
     },
-    body: JSON.stringify({
-      model: AI_MODEL,
-      messages,
-      tools: LLM_TOOLS,
-    }),
+    body: JSON.stringify(payload),
   });
 
-  const response = await request.json();
+  const response: ChatCompletion = await request.json();
+  console.log(`total token usage: `, response.usage?.total_tokens);
   const choice = response.choices[0];
   if (!choice) return "";
   const msg = choice.message;
   if (msg.tool_calls && msg.tool_calls.length > 0) {
     for (let i = 0; i < msg.tool_calls.length; i++) {
       const currentTool = msg.tool_calls[i];
+      if (currentTool.type != "function") continue;
       const fnName = currentTool.function.name;
       const payload = JSON.parse(currentTool.function.arguments);
       if (fnName === "getPersonalInfo") {
@@ -36,7 +48,7 @@ export async function llmCall(messages: Record<string, string>[]) {
   return msg.content;
 }
 
-export const LLM_TOOLS = [
+export const LLM_TOOLS: ChatCompletionTool[] = [
   {
     type: "function",
     function: {
