@@ -1,10 +1,11 @@
 import express, { Express, Request, Response, NextFunction } from "express";
 import { llmCall } from "./llm.js";
 import { http } from "@alzulejos/laranja-decorators";
+import { ChatCompletionMessageParam } from "openai/resources.js";
 
 const app: Express = express();
 const PORT = process.env.PORT || 3001;
-
+const allMessages: ChatCompletionMessageParam[] = [];
 app.use(express.json());
 
 app.get("/", (req: Request, res: Response) => {
@@ -13,13 +14,15 @@ app.get("/", (req: Request, res: Response) => {
 
 app.post("/chat", async (req: Request, res: Response) => {
   const message = req.body.message ?? "";
-  const messags = [
+  const messags: ChatCompletionMessageParam[] = [
     {
       role: "user",
       content: message,
     },
   ];
-  const chat = await llmCall(messags);
+  allMessages.push(...messags);
+  const chat = await llmCall(allMessages);
+  allMessages.push({ role: "assistant", content: chat });
   res.status(200).json({ message: chat });
 });
 
